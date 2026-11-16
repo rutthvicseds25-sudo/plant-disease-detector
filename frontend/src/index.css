@@ -506,3 +506,78 @@ input:checked + .slider:before {
   margin-bottom: 12px;
   opacity: 0.6;
 }
+
+/* Symptom Questionnaire */
+
+.questionnaire {
+  margin-top: 24px;
+  padding: 20px;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.questionnaire h3 {
+  font-size: 18px;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+
+.questionnaire-intro {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+
+.question-item {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.question-item p {
+  font-size: 14px;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+
+.answer-options {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.answer-btn {
+  padding: 8px 18px;
+  border: 1px solid var(--border);
+  background: white;
+  color: var(--text-secondary);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.answer-btn.selected {
+  background: var(--primary-light);
+  color: #047857;
+  border-color: var(--primary);
+  font-weight: 700;
+}
+
+.observations-field {
+  margin-top: 20px;
+}
+
+.observations-field label {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.observations-field textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: inherit;
+  resize: vertical;
+}

@@ -11,6 +11,7 @@ import {
   Eye,
   Info
 } from 'lucide-react';
+import SymptomQuestionnaire from './SymptomQuestionnaire';
 
 const API_BASE_URL = 'http://127.0.0.1:8000';
 
@@ -25,6 +26,24 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('gradcam');
   const [backendOnline, setBackendOnline] = useState(null);
   const fileInputRef = useRef(null);
+  // Questionnaire state
+const [symptomAnswers, setSymptomAnswers] = useState({
+  spots: '',
+  yellowing: '',
+  wilting: '',
+  spreading: '',
+  leaf_affected: '',
+  multiple_leaves: ''
+});
+
+const [additionalObservations, setAdditionalObservations] = useState('');
+
+const handleAnswerChange = (question, answer) => {
+  setSymptomAnswers((previous) => ({
+    ...previous,
+    [question]: answer
+  }));
+};
 
   // Check Backend Health
   const checkBackendHealth = async () => {
@@ -135,6 +154,12 @@ export default function App() {
 
     const formData = new FormData();
     formData.append('file', selectedFile);
+    formData.append('symptoms', JSON.stringify(symptomAnswers));
+
+formData.append(
+  'additional_observations',
+  additionalObservations
+);
 
     try {
       const url = `${API_BASE_URL}/predict?include_heatmap=${includeHeatmap}&seg_method=${segMethod}`;
@@ -265,6 +290,12 @@ export default function App() {
               </label>
             </div>
           </div>
+          <SymptomQuestionnaire
+            answers={symptomAnswers}
+            onAnswerChange={handleAnswerChange}
+            observations={additionalObservations}
+            onObservationsChange={setAdditionalObservations}
+/>
 
           {/* Submit Button */}
           <button
@@ -388,6 +419,40 @@ export default function App() {
                   <span className="metric-val">MobileNetV3</span>
                 </div>
               </div>
+
+              {/* Questionnaire Assessment */}
+{results.symptom_assessment && (
+  <div className="remedy-card">
+    <div className="remedy-title">
+      🌿 Additional Symptom Assessment
+    </div>
+
+    <p className="remedy-text">
+      Preliminary symptom score: {
+        results.symptom_assessment.score
+      }
+    </p>
+
+    <p className="remedy-text">
+      Symptom indicator: {
+        results.symptom_assessment.risk_level
+      }
+    </p>
+
+    <p className="remedy-text">
+      This is a preliminary indicator based on reported observations,
+      not a confirmed measure of disease severity.
+    </p>
+
+    {results.symptom_assessment.additional_observations && (
+      <p className="remedy-text">
+        Additional observations: {
+          results.symptom_assessment.additional_observations
+        }
+      </p>
+    )}
+  </div>
+)}
 
               {/* Agronomic Remedy Advice */}
               <div className="remedy-card">

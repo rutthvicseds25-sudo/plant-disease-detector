@@ -8,12 +8,13 @@ import sys
 import io
 import time
 import base64
+import json
 
 # Add project root to sys.path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from fastapi import FastAPI, UploadFile, File, Query, HTTPException
+from fastapi import FastAPI, UploadFile, File, Query, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from PIL import Image
@@ -116,6 +117,8 @@ def health_check():
 @app.post("/predict", tags=["Inference"])
 def predict_leaf_disease(
     file: UploadFile = File(..., description="Image file of the plant leaf"),
+    symptoms: str = Form("{}"),
+    additional_observations: str = Form(""),
     include_heatmap: bool = Query(True, description="Whether to compute and return Grad-CAM heatmap base64"),
     seg_method: str = Query("none", pattern="^(none|hsv|otsu)$", description="Background segmentation method")
 ):
@@ -124,6 +127,29 @@ def predict_leaf_disease(
     """
     if container.model is None:
         load_inference_model()
+        try:
+    symptom_answers = json.loads(symptoms)
+
+    if not isinstance(symptom_answers, dict):
+        raise ValueError("Symptoms must be a JSON object")
+
+    allowed_answers = {"Yes", "No", "Unsure"}
+
+    for value in symptom_answers.values():
+        if value not in allowed_answers and value != "":
+            raise ValueError("Invalid symptom answer")
+
+except (ValueError, TypeError):
+    raise HTTPException(
+        status_code=400,
+        detail="Invalid questionnaire answers"
+    )
+
+if len(additional_observations) > 1000:
+    raise HTTPException(
+        status_code=400,
+        detail="Additional observations are too long"
+    )
 
     # Read and validate image
     try:
@@ -154,6 +180,35 @@ def predict_leaf_disease(
     heatmap, pred_idx, confidence = cam.generate_heatmap(input_tensor)
     pred_class = container.class_names[pred_idx] if pred_idx < len(container.class_names) else f"Class_{pred_idx}"
     report = get_diagnosis_report(pred_class, confidence)
+    # Preliminary symptom assessment
+symptom_weights = {
+    "spots": 1,
+    "yellowing": 1,
+    "wilting": 2,
+    "spreading": 2,
+    "leaf_affected": 2,
+    "multiple_leaves": 2
+}
+
+symptom_score = sum(
+    weight
+    for question, weight in symptom_weights.items()
+    if symptom_answers.get(question) == "Yes"
+)
+
+if symptom_score <= 2:
+    risk_level = "Low"
+elif symptom_score <= 5:
+    risk_level = "Moderate"
+else:
+    risk_level = "High"
+
+symptom_assessment = {
+    "score": symptom_score,
+    "risk_level": risk_level,
+    "answers": symptom_answers,
+    "additional_observations": additional_observations
+}
 
     # Top-3 predictions
     with torch.no_grad():
@@ -185,4 +240,5 @@ def predict_leaf_disease(
         "top3_predictions": top3_list,
         "inference_latency_ms": round(elapsed_ms, 2),
         "gradcam_heatmap_base64": heatmap_base64
+        "symptom_assessment": symptom_assessment,
     }
